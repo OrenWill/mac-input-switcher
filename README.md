@@ -99,7 +99,7 @@ mac-input-switcher/
 
 ## 作者
 
-[@Oren](https://github.com/ComWill) · WeChat: wanggh92
+[@OrenWill](https://github.com/OrenWill) · WeChat: wanggh92
 
 ## License
 

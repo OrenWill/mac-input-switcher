@@ -147,6 +147,9 @@ struct SettingsView: View {
 
     private var footerSection: some View {
         HStack {
+            Text("@OrenWill · WeChat: wanggh92")
+                .font(.system(size: 10))
+                .foregroundColor(.secondary.opacity(0.6))
             Spacer()
             Button(action: { NSApp.terminate(nil) }) {
                 Text("退出应用")
