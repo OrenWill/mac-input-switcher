@@ -6,13 +6,14 @@ set -e
 # ──────────────────────────────────────────
 
 APP_NAME="输入法切换"
+PKG_NAME="输入法自动切换(input-switcher)"
 VERSION="${1:-1.0.0}"
 PROJECT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 BUILD_DIR="$PROJECT_DIR/build"
 APP_PATH="$BUILD_DIR/$APP_NAME.app"
-DMG_PATH="$BUILD_DIR/${APP_NAME}_v${VERSION}.dmg"
+DMG_PATH="$BUILD_DIR/${PKG_NAME}_v${VERSION}.dmg"
 TMP_DIR="$BUILD_DIR/dmg_tmp"
-VOL_NAME="$APP_NAME v$VERSION"
+VOL_NAME="$PKG_NAME v$VERSION"
 
 echo "📦 生成 DMG 安装包 …"
 echo "   版本: $VERSION"

@@ -8,25 +8,19 @@ final class UpdateAlertController {
     private static var alertWindow: NSWindow?
 
     static func show(info: UpdateInfo) {
-        // 关闭已有的弹框
         alertWindow?.close()
         alertWindow = nil
 
+        // 先创建一个占位大小的窗口
+        let width: CGFloat = 380
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 230),
+            contentRect: NSRect(x: 0, y: 0, width: width, height: 200),
             styleMask: info.hasUpdate ? [.titled, .closable] : [.titled],
             backing: .buffered,
             defer: false
         )
-        window.title = ""
-        window.titlebarAppearsTransparent = true
-        window.isMovableByWindowBackground = true
-        window.center()
-        window.level = .modalPanel
-        window.isReleasedWhenClosed = false
         alertWindow = window
 
-        // 闭包捕获当前窗口引用，避免旧 timer 误关新窗口
         let contentView = UpdateAlertView(info: info, dismiss: { [weak window] in
             window?.orderOut(nil)
             if alertWindow === window {
@@ -39,9 +33,20 @@ final class UpdateAlertController {
             }
         })
 
-        let hostingView = NSHostingView(rootView: contentView)
-        hostingView.frame = NSRect(x: 0, y: 0, width: 380, height: 230)
+        let hostingView = NSHostingView(rootView: AnyView(contentView))
+        hostingView.frame = NSRect(x: 0, y: 0, width: width, height: 200)
+        hostingView.layoutSubtreeIfNeeded()
+        let fitHeight = hostingView.fittingSize.height
+
+        window.setContentSize(NSSize(width: width, height: fitHeight))
+        hostingView.frame = NSRect(x: 0, y: 0, width: width, height: fitHeight)
         window.contentView = hostingView
+        window.title = ""
+        window.titlebarAppearsTransparent = true
+        window.isMovableByWindowBackground = true
+        window.center()
+        window.level = NSWindow.Level.modalPanel
+        window.isReleasedWhenClosed = false
 
         let delegate = AlertWindowDelegate { [weak window] in
             if alertWindow === window {
@@ -51,7 +56,7 @@ final class UpdateAlertController {
         window.delegate = delegate
         objc_setAssociatedObject(window, "d", delegate, .OBJC_ASSOCIATION_RETAIN)
 
-        window.makeKeyAndOrderFront(nil)
+        window.makeKeyAndOrderFront(nil as Any?)
         NSApp.activate(ignoringOtherApps: true)
     }
 }
@@ -62,7 +67,7 @@ private class AlertWindowDelegate: NSObject, NSWindowDelegate {
     func windowWillClose(_ notification: Notification) { onClose() }
 }
 
-// MARK: - 圓角按钮样式
+// MARK: - 圆角按钮样式
 
 struct RoundedButtonStyle: ButtonStyle {
     func makeBody(configuration: Configuration) -> some View {
@@ -90,10 +95,10 @@ struct UpdateAlertView: View {
                 if let appIcon = NSApp.applicationIconImage {
                     Image(nsImage: appIcon)
                         .resizable()
-                        .frame(width: 52, height: 52)
+                        .frame(width: 48, height: 48)
                 }
 
-                VStack(alignment: .leading, spacing: 6) {
+                VStack(alignment: .leading, spacing: 4) {
                     Text(info.hasUpdate
                          ? "新版本的 Input Switcher 可以安装啦！"
                          : "您使用的就是最新版！")
@@ -111,10 +116,8 @@ struct UpdateAlertView: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
-            .padding(.top, 24)
-            .padding(.bottom, 20)
-
-            Spacer()
+            .padding(.top, 20)
+            .padding(.bottom, 14)
 
             if info.hasUpdate {
                 Button(action: {
@@ -130,7 +133,7 @@ struct UpdateAlertView: View {
                 }
                 .buttonStyle(RoundedButtonStyle())
                 .padding(.horizontal, 24)
-                .padding(.bottom, 20)
+                .padding(.bottom, 16)
             } else {
                 Button(action: { dismiss() }) {
                     Text(countdown > 0 ? "好（\(countdown)s）" : "好")
@@ -140,18 +143,18 @@ struct UpdateAlertView: View {
                 }
                 .buttonStyle(RoundedButtonStyle())
                 .padding(.horizontal, 24)
-                .padding(.bottom, 20)
+                .padding(.bottom, 16)
                 .onAppear { startCountdown() }
             }
         }
-        .frame(width: 380, height: 230)
+        .frame(width: 380)
+        .fixedSize(horizontal: false, vertical: true)
     }
 
     // MARK: - 倒计时
 
     private func startCountdown() {
         countdown = 5
-        // 递归方式：每 1 秒更新，归零时关闭
         func tick() {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
                 if countdown > 1 {
