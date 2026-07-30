@@ -137,8 +137,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.view = itemView
         menu.addItem(item)
     }
-        menu.addItem(item)
-    }
 
     private func makeMenuItem(_ title: String, action: Selector, key: String) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
