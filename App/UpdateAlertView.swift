@@ -12,8 +12,14 @@ final class UpdateAlertController {
         alertWindow?.close()
 
         let contentView = UpdateAlertView(info: info, dismiss: {
-            alertWindow?.close()
+            alertWindow?.orderOut(nil)
             alertWindow = nil
+            // 弹框关闭后取消应用激活，避免其他窗口（如偏好设置）被意外拉出
+            DispatchQueue.main.async {
+                if NSApp.mainWindow == nil, NSApp.keyWindow == nil {
+                    NSApp.hide(nil)
+                }
+            }
         })
         let hostingView = NSHostingView(rootView: contentView)
         hostingView.frame = NSRect(x: 0, y: 0, width: 380, height: 230)
