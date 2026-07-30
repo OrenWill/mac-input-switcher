@@ -32,8 +32,8 @@ final class InputMethodViewModel: ObservableObject {
 
         // 打开设置时自动切回已保存的默认输入法，确保展示一致
         if !defaultIME.isEmpty && currentSystemIME != defaultIME {
-            _ = manager.switchTo(name: defaultIME)
-            currentSystemIME = manager.currentSource()?.name ?? defaultIME
+            let ok = manager.switchTo(name: defaultIME)
+            currentSystemIME = ok ? (manager.currentSource()?.name ?? defaultIME) : currentSystemIME
         }
     }
 

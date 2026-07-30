@@ -69,15 +69,14 @@ final class UpdateKit {
         item.target = target
 
         if updateAvailable {
-            let attr = NSMutableAttributedString(string: "检查更新\t●")
-            attr.addAttribute(.foregroundColor, value: NSColor.textColor,
-                              range: NSRange(location: 0, length: 4))
-            attr.addAttribute(.foregroundColor, value: NSColor.systemRed,
-                              range: NSRange(location: 5, length: 1))
-            attr.addAttribute(.font, value: NSFont.menuFont(ofSize: 10),
-                              range: NSRange(location: 5, length: 1))
-            attr.addAttribute(.baselineOffset, value: NSNumber(value: 1),
-                              range: NSRange(location: 5, length: 1))
+            let titleStr = "检查更新\t●" as NSString
+            let attr = NSMutableAttributedString(string: titleStr as String)
+            let dotRange = NSRange(location: titleStr.length - 1, length: 1)
+            let textRange = NSRange(location: 0, length: titleStr.length - 1)
+            attr.addAttribute(.foregroundColor, value: NSColor.textColor, range: textRange)
+            attr.addAttribute(.foregroundColor, value: NSColor.systemRed, range: dotRange)
+            attr.addAttribute(.font, value: NSFont.menuFont(ofSize: 10), range: dotRange)
+            attr.addAttribute(.baselineOffset, value: NSNumber(value: 1), range: dotRange)
             item.attributedTitle = attr
         }
         menu.addItem(item)
@@ -239,6 +238,7 @@ private struct UpdateAlertView: View {
     let appName: String
     let dismiss: () -> Void
     @State private var countdown = 5
+    @State private var countdownCancelled = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -272,13 +272,14 @@ private struct UpdateAlertView: View {
                 }
                 .buttonStyle(RoundedButtonStyle()).padding(.horizontal, 24).padding(.bottom, 16)
             } else {
-                Button(action: { dismiss() }) {
+                Button(action: { countdownCancelled = true; dismiss() }) {
                     Text(countdown > 0 ? "好（\(countdown)s）" : "好")
                         .font(.system(size: 13, weight: .medium))
                         .frame(maxWidth: .infinity).frame(height: 32)
                 }
                 .buttonStyle(RoundedButtonStyle()).padding(.horizontal, 24).padding(.bottom, 16)
                 .onAppear { startCountdown() }
+                .onDisappear { countdownCancelled = true }
             }
         }
         .frame(width: 380).fixedSize(horizontal: false, vertical: true)
@@ -286,11 +287,16 @@ private struct UpdateAlertView: View {
 
     private func startCountdown() {
         countdown = 5
+        countdownCancelled = false
         func tick() {
             DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                guard !countdownCancelled else { return }
                 if countdown > 1 { countdown -= 1; tick() }
                 else if countdown == 1 { countdown = 0
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) { dismiss() }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 1) {
+                        guard !countdownCancelled else { return }
+                        dismiss()
+                    }
                 }
             }
         }
