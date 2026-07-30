@@ -1,6 +1,38 @@
 import AppKit
 import Carbon
 
+// MARK: - 菜单项自定义视图（检查更新 + 红点右对齐）
+
+private final class CheckUpdateItemView: NSView {
+    var showRedDot = false { didSet { needsDisplay = true } }
+    private let label = NSTextField(labelWithString: "检查更新")
+
+    init() {
+        super.init(frame: NSRect(x: 0, y: 0, width: 260, height: 20))
+        label.font = NSFont.menuFont(ofSize: 0)
+        label.frame = NSRect(x: 2, y: 1, width: 200, height: 18)
+        addSubview(label)
+    }
+    required init?(coder: NSCoder) { fatalError() }
+
+    override func draw(_ dirtyRect: NSRect) {
+        if showRedDot {
+            let dotSize: CGFloat = 6
+            let dotX = bounds.width - dotSize - 26  // 对齐退出按钮快捷键右侧位置
+            let dotY = (bounds.height - dotSize) / 2
+            NSColor.systemRed.setFill()
+            NSBezierPath(ovalIn: NSRect(x: dotX, y: dotY, width: dotSize, height: dotSize)).fill()
+        }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        if let menuItem = enclosingMenuItem {
+            _ = menuItem.target?.perform(menuItem.action, with: menuItem)
+            menuItem.menu?.cancelTracking()
+        }
+    }
+}
+
 // MARK: - 状态栏自定义视图（支持红点）
 
 private final class StatusItemView: NSView {
@@ -100,26 +132,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func buildCheckUpdateItem(in menu: NSMenu) {
         let item = NSMenuItem(title: "", action: #selector(checkUpdate), keyEquivalent: "")
         item.target = self
-
-        if updateAvailable {
-            let attr = NSMutableAttributedString(string: "检查更新 ")
-            // 6px 红色圆点作为文本附件
-            let dotSize: CGFloat = 6
-            let dotImage = NSImage(size: NSSize(width: dotSize + 2, height: dotSize + 2))
-            dotImage.lockFocus()
-            NSColor.systemRed.setFill()
-            NSBezierPath(ovalIn: NSRect(x: 1, y: 1, width: dotSize, height: dotSize)).fill()
-            dotImage.unlockFocus()
-            let attachment = NSTextAttachment()
-            attachment.image = dotImage
-            attachment.bounds = NSRect(x: 0, y: -2, width: dotSize + 2, height: dotSize + 2)
-            attr.append(NSAttributedString(attachment: attachment))
-            attr.addAttribute(.foregroundColor, value: NSColor.textColor,
-                              range: NSRange(location: 0, length: attr.length))
-            item.attributedTitle = attr
-        } else {
-            item.title = "检查更新"
-        }
+        let itemView = CheckUpdateItemView()
+        itemView.showRedDot = updateAvailable
+        item.view = itemView
+        menu.addItem(item)
+    }
         menu.addItem(item)
     }
 
@@ -157,8 +174,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     // MARK: - 自动检查更新
 
     private func startAutoCheck() {
-        // 启动 30 秒后首次检查，之后每 24 小时一次
-        DispatchQueue.main.asyncAfter(deadline: .now() + 30) { [weak self] in
+        // 启动 10 秒后首次检查，之后每 24 小时一次
+        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
             self?.performAutoCheck()
         }
         autoCheckTimer = Timer.scheduledTimer(withTimeInterval: 86400, repeats: true) { [weak self] _ in
