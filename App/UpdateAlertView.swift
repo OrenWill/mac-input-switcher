@@ -10,19 +10,7 @@ final class UpdateAlertController {
     static func show(info: UpdateInfo) {
         // 关闭已有的弹框
         alertWindow?.close()
-
-        let contentView = UpdateAlertView(info: info, dismiss: {
-            alertWindow?.orderOut(nil)
-            alertWindow = nil
-            // 弹框关闭后取消应用激活，避免其他窗口（如偏好设置）被意外拉出
-            DispatchQueue.main.async {
-                if NSApp.mainWindow == nil, NSApp.keyWindow == nil {
-                    NSApp.hide(nil)
-                }
-            }
-        })
-        let hostingView = NSHostingView(rootView: contentView)
-        hostingView.frame = NSRect(x: 0, y: 0, width: 380, height: 230)
+        alertWindow = nil
 
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 380, height: 230),
@@ -33,14 +21,32 @@ final class UpdateAlertController {
         window.title = ""
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
-        window.contentView = hostingView
         window.center()
         window.level = .modalPanel
         window.isReleasedWhenClosed = false
         alertWindow = window
 
-        let delegate = AlertWindowDelegate {
-            alertWindow = nil
+        // 闭包捕获当前窗口引用，避免旧 timer 误关新窗口
+        let contentView = UpdateAlertView(info: info, dismiss: { [weak window] in
+            window?.orderOut(nil)
+            if alertWindow === window {
+                alertWindow = nil
+            }
+            DispatchQueue.main.async {
+                if NSApp.mainWindow == nil, NSApp.keyWindow == nil {
+                    NSApp.hide(nil)
+                }
+            }
+        })
+
+        let hostingView = NSHostingView(rootView: contentView)
+        hostingView.frame = NSRect(x: 0, y: 0, width: 380, height: 230)
+        window.contentView = hostingView
+
+        let delegate = AlertWindowDelegate { [weak window] in
+            if alertWindow === window {
+                alertWindow = nil
+            }
         }
         window.delegate = delegate
         objc_setAssociatedObject(window, "d", delegate, .OBJC_ASSOCIATION_RETAIN)

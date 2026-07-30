@@ -33,6 +33,13 @@ final class InputMethodManager {
 
     // ── 查询所有可切换的输入法 ──
     func allSources() -> [InputSource] {
+        // 系统工具类输入源，非文本输入法，需隐藏
+        let excludedIDs: Set<String> = [
+            "com.apple.PressAndHold",             // 长按重音符号
+            "com.apple.inputmethod.ironwood",     // 听写
+            "com.apple.CharacterPaletteIM",       // 表情与符号
+        ]
+
         guard let raw = TISCreateInputSourceList(nil, false)?
             .takeRetainedValue() as? [TISInputSource]
         else { return [] }
@@ -48,9 +55,14 @@ final class InputMethodManager {
                 let ip = TISGetInputSourceProperty(source, kTISPropertyInputSourceID)
             else { return nil }
 
+            let id = Unmanaged<CFString>.fromOpaque(ip).takeUnretainedValue() as String
+
+            // 过滤系统工具
+            if excludedIDs.contains(id) { return nil }
+
             return InputSource(
                 name: Unmanaged<CFString>.fromOpaque(np).takeUnretainedValue() as String,
-                id:   Unmanaged<CFString>.fromOpaque(ip).takeUnretainedValue() as String,
+                id:   id,
                 source: source
             )
         }
