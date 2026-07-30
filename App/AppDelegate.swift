@@ -41,6 +41,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         menu.removeAllItems()
         buildInputMethodItems(in: menu)
         menu.addItem(.separator())
+        menu.addItem(makeMenuItem("检查更新", action: #selector(checkUpdate), key: ""))
         menu.addItem(makeMenuItem("偏好设置...", action: #selector(openPreferences), key: ","))
         menu.addItem(.separator())
         menu.addItem(makeMenuItem("退出", action: #selector(quitApp), key: "q"))
@@ -81,6 +82,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let defaults = UserDefaults.standard
         let ime = defaults.string(forKey: "default_input_method") ?? "\u{5FAE}\u{4FE1}\u{8F93}\u{5165}\u{6CD5}"
         _ = manager.switchTo(name: ime)
+    }
+
+    // MARK: - 检查更新
+
+    @objc private func checkUpdate() {
+        UpdateChecker.check { info in
+            UpdateAlertController.show(info: info)
+        }
     }
 
     // MARK: - 偏好设置
