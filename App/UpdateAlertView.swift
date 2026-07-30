@@ -42,6 +42,7 @@ final class UpdateAlertController {
         hostingView.frame = NSRect(x: 0, y: 0, width: width, height: fitHeight)
         window.contentView = hostingView
         window.title = ""
+        window.styleMask.insert(.fullSizeContentView)
         window.titlebarAppearsTransparent = true
         window.isMovableByWindowBackground = true
         window.center()
@@ -117,7 +118,7 @@ struct UpdateAlertView: View {
             }
             .padding(.horizontal, 24)
             .padding(.top, 10)
-            .padding(.bottom, 14)
+            .padding(.bottom, 20)
 
             if info.hasUpdate {
                 Button(action: {
