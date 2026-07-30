@@ -116,7 +116,7 @@ struct UpdateAlertView: View {
                 Spacer()
             }
             .padding(.horizontal, 24)
-            .padding(.top, 20)
+            .padding(.top, 10)
             .padding(.bottom, 14)
 
             if info.hasUpdate {
