@@ -1,38 +1,6 @@
 import AppKit
 import Carbon
 
-// MARK: - 菜单项自定义视图（检查更新 + 红点右对齐）
-
-private final class CheckUpdateItemView: NSView {
-    var showRedDot = false { didSet { needsDisplay = true } }
-    private let label = NSTextField(labelWithString: "检查更新")
-
-    init() {
-        super.init(frame: NSRect(x: 0, y: 0, width: 260, height: 20))
-        label.font = NSFont.menuFont(ofSize: 0)
-        label.frame = NSRect(x: 20, y: 1, width: 200, height: 18)
-        addSubview(label)
-    }
-    required init?(coder: NSCoder) { fatalError() }
-
-    override func draw(_ dirtyRect: NSRect) {
-        if showRedDot {
-            let dotSize: CGFloat = 6
-            let dotX = bounds.width - dotSize - 26  // 对齐退出按钮快捷键右侧位置
-            let dotY = (bounds.height - dotSize) / 2
-            NSColor.systemRed.setFill()
-            NSBezierPath(ovalIn: NSRect(x: dotX, y: dotY, width: dotSize, height: dotSize)).fill()
-        }
-    }
-
-    override func mouseDown(with event: NSEvent) {
-        if let menuItem = enclosingMenuItem {
-            _ = menuItem.target?.perform(menuItem.action, with: menuItem)
-            menuItem.menu?.cancelTracking()
-        }
-    }
-}
-
 // MARK: - 状态栏自定义视图（支持红点）
 
 private final class StatusItemView: NSView {
@@ -130,11 +98,23 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func buildCheckUpdateItem(in menu: NSMenu) {
-        let item = NSMenuItem(title: "", action: #selector(checkUpdate), keyEquivalent: "")
+        let item = NSMenuItem(title: "检查更新", action: #selector(checkUpdate), keyEquivalent: "")
         item.target = self
-        let itemView = CheckUpdateItemView()
-        itemView.showRedDot = updateAvailable
-        item.view = itemView
+
+        if updateAvailable {
+            // 用 tab 实现右对齐红点（系统自动处理 tab 分隔）
+            let attr = NSMutableAttributedString(string: "检查更新\t●")
+            attr.addAttribute(.foregroundColor, value: NSColor.textColor,
+                              range: NSRange(location: 0, length: 4))
+            attr.addAttribute(.foregroundColor, value: NSColor.systemRed,
+                              range: NSRange(location: 5, length: 1))
+            attr.addAttribute(.font, value: NSFont.menuFont(ofSize: 10),
+                              range: NSRange(location: 5, length: 1))
+            attr.addAttribute(.baselineOffset, value: NSNumber(value: 1),
+                              range: NSRange(location: 5, length: 1))
+            item.attributedTitle = attr
+        }
+
         menu.addItem(item)
     }
 
