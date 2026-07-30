@@ -1,5 +1,9 @@
 # 输入法切换 (Mac Input Switcher)
 
+<p align="center">
+  <img src="icon.png" width="120" alt="输入法切换图标" />
+</p>
+
 macOS 菜单栏输入法快速切换工具，M 系列芯片原生支持。
 
 ## 功能
