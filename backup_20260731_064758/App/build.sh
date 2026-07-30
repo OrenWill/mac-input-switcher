@@ -36,7 +36,8 @@ swiftc \
     "$APP_DIR/InputMethodViewModel.swift" \
     "$APP_DIR/AppDelegate.swift" \
     "$APP_DIR/SettingsView.swift" \
-    "$APP_DIR/UpdateKit.swift" \
+    "$APP_DIR/UpdateChecker.swift" \
+    "$APP_DIR/UpdateAlertView.swift" \
     "$APP_DIR/PreferencesWindowController.swift"
 
 echo "   ✅ 编译成功"

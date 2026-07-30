@@ -1,66 +1,32 @@
 import AppKit
 import Carbon
 
-// MARK: - 状态栏自定义视图（支持红点）
-
-private final class StatusItemView: NSView {
-    var showRedDot = false { didSet { needsDisplay = true } }
-
-    override var intrinsicContentSize: NSSize { NSSize(width: 24, height: 22) }
-
-    override func draw(_ dirtyRect: NSRect) {
-        let attrs: [NSAttributedString.Key: Any] = [
-            .font: NSFont.systemFont(ofSize: 14),
-            .foregroundColor: NSColor.textColor
-        ]
-        let text = "\u{2668}" as NSString
-        let textSize = text.size(withAttributes: attrs)
-        let x = (bounds.width - textSize.width) / 2
-        let y = (bounds.height - textSize.height) / 2 - 1
-        text.draw(at: NSPoint(x: x, y: y), withAttributes: attrs)
-
-        if showRedDot {
-            let dotSize: CGFloat = 6
-            let dotRect = NSRect(
-                x: bounds.width - dotSize - 2,
-                y: bounds.height - dotSize - 2,
-                width: dotSize, height: dotSize
-            )
-            NSColor.systemRed.setFill()
-            NSBezierPath(ovalIn: dotRect).fill()
-        }
-    }
-}
-
-// MARK: - AppDelegate
-
 final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     private var statusItem: NSStatusItem!
-    private let statusView = StatusItemView()
     private let menu = NSMenu()
     private let manager = InputMethodManager.shared
     private lazy var prefsWC = PreferencesWindowController()
-    private var updateAvailable = false
-    private var autoCheckTimer: Timer?
 
     // MARK: - 应用启动
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        UpdateKit.shared.configure(repo: "OrenWill/mac-input-switcher", appName: "Input Switcher")
+
         setupStatusItem()
         setupMenu()
         startObserving()
         applyDefaultIME()
-        startAutoCheck()
+        UpdateKit.shared.startAutoCheck()
     }
 
     // MARK: - 状态栏
 
     private func setupStatusItem() {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)
-        statusItem.button?.addSubview(statusView)
-        statusView.frame = NSRect(x: 0, y: 0, width: 24, height: 22)
-        statusItem.button?.frame = statusView.frame
+        if let button = statusItem.button {
+            UpdateKit.shared.bindStatusItem(button)
+        }
         statusItem.menu = menu
     }
 
@@ -72,13 +38,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     func menuNeedsUpdate(_ menu: NSMenu) {
-        // 点击菜单栏 → 隐藏状态栏红点
-        statusView.showRedDot = false
+        UpdateKit.shared.menuDidOpen()
 
         menu.removeAllItems()
         buildInputMethodItems(in: menu)
         menu.addItem(.separator())
-        buildCheckUpdateItem(in: menu)
+        UpdateKit.shared.addMenuItem(to: menu, target: self, action: #selector(checkUpdate))
         menu.addItem(makeMenuItem("偏好设置...", action: #selector(openPreferences), key: ","))
         menu.addItem(.separator())
         menu.addItem(makeMenuItem("退出", action: #selector(quitApp), key: "q"))
@@ -89,39 +54,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let currentID = manager.currentSource()?.id
         for src in sources {
             let item = NSMenuItem(title: src.name, action: #selector(switchToInputMethod(_:)), keyEquivalent: "")
-            item.representedObject = src
-            item.target = self
+            item.representedObject = src; item.target = self
             item.state = (src.id == currentID) ? .on : .off
-            item.isEnabled = true
-            menu.addItem(item)
+            item.isEnabled = true; menu.addItem(item)
         }
-    }
-
-    private func buildCheckUpdateItem(in menu: NSMenu) {
-        let item = NSMenuItem(title: "检查更新", action: #selector(checkUpdate), keyEquivalent: "")
-        item.target = self
-
-        if updateAvailable {
-            // 用 tab 实现右对齐红点（系统自动处理 tab 分隔）
-            let attr = NSMutableAttributedString(string: "检查更新\t●")
-            attr.addAttribute(.foregroundColor, value: NSColor.textColor,
-                              range: NSRange(location: 0, length: 4))
-            attr.addAttribute(.foregroundColor, value: NSColor.systemRed,
-                              range: NSRange(location: 5, length: 1))
-            attr.addAttribute(.font, value: NSFont.menuFont(ofSize: 10),
-                              range: NSRange(location: 5, length: 1))
-            attr.addAttribute(.baselineOffset, value: NSNumber(value: 1),
-                              range: NSRange(location: 5, length: 1))
-            item.attributedTitle = attr
-        }
-
-        menu.addItem(item)
     }
 
     private func makeMenuItem(_ title: String, action: Selector, key: String) -> NSMenuItem {
         let item = NSMenuItem(title: title, action: action, keyEquivalent: key)
-        item.target = self
-        return item
+        item.target = self; return item
     }
 
     // MARK: - 切换输入法
@@ -132,59 +73,24 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     private func applyDefaultIME() {
-        let defaults = UserDefaults.standard
-        let ime = defaults.string(forKey: "default_input_method") ?? "\u{5FAE}\u{4FE1}\u{8F93}\u{5165}\u{6CD5}"
+        let d = UserDefaults.standard
+        let ime = d.string(forKey: "default_input_method") ?? "\u{5FAE}\u{4FE1}\u{8F93}\u{5165}\u{6CD5}"
         _ = manager.switchTo(name: ime)
     }
 
     // MARK: - 检查更新
 
     @objc private func checkUpdate() {
-        // 点击检查更新 → 隐藏菜单红点
-        updateAvailable = false
-        UpdateChecker.check { [weak self] info in
-            UpdateAlertController.show(info: info)
-            // 检查完后刷新状态（可能已是最新版）
-            self?.updateAvailable = false
-        }
+        UpdateKit.shared.manualCheck()
     }
 
-    // MARK: - 自动检查更新
+    // MARK: - 偏好设置 / 退出
 
-    private func startAutoCheck() {
-        // 启动 10 秒后首次检查，之后每 24 小时一次
-        DispatchQueue.main.asyncAfter(deadline: .now() + 10) { [weak self] in
-            self?.performAutoCheck()
-        }
-        autoCheckTimer = Timer.scheduledTimer(withTimeInterval: 86400, repeats: true) { [weak self] _ in
-            self?.performAutoCheck()
-        }
-    }
+    @objc private func openPreferences() { prefsWC.showWindow(nil) }
 
-    private func performAutoCheck() {
-        UpdateChecker.check { [weak self] info in
-            if info.hasUpdate {
-                self?.updateAvailable = true
-                self?.statusView.showRedDot = true
-            }
-        }
-    }
+    @objc private func quitApp() { NSApp.terminate(nil) }
 
-    // MARK: - 偏好设置
-
-    @objc private func openPreferences() {
-        prefsWC.showWindow(nil)
-    }
-
-    // MARK: - 退出
-
-    @objc private func quitApp() {
-        NSApp.terminate(nil)
-    }
-
-    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        return false
-    }
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
     // MARK: - 监听系统输入法变化
 
