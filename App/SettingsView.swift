@@ -130,9 +130,8 @@ struct SettingsView: View {
             Toggle("", isOn: Binding(
                 get: { vm.launchAtLogin },
                 set: { newValue in
-                    vm.launchAtLogin = newValue
-                    if newValue && !vm.toggleLaunchAtLogin() {
-                        vm.launchAtLogin = false
+                    let ok = vm.toggleLaunchAtLogin(to: newValue)
+                    if newValue && !ok {
                         showInstallHint = true
                     }
                 }

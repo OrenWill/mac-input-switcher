@@ -47,16 +47,17 @@ final class InputMethodViewModel: ObservableObject {
         currentSystemIME = name
     }
 
-    /// 切换开机自启动
-    func toggleLaunchAtLogin() -> Bool {
-        if launchAtLogin {
+    @discardableResult
+    func toggleLaunchAtLogin(to enable: Bool) -> Bool {
+        if !enable {
             do {
                 try SMAppService.mainApp.unregister()
                 launchAtLogin = false
                 UserDefaults.standard.set(false, forKey: "launch_at_login")
                 return true
             } catch {
-                return true // 关闭一般不会失败
+                launchAtLogin = false
+                return true
             }
         } else {
             do {
@@ -65,7 +66,7 @@ final class InputMethodViewModel: ObservableObject {
                 UserDefaults.standard.set(true, forKey: "launch_at_login")
                 return true
             } catch {
-                // 注册失败：应用不在 /Applications 中
+                launchAtLogin = false
                 return false
             }
         }
