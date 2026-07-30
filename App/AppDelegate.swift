@@ -10,7 +10,7 @@ private final class CheckUpdateItemView: NSView {
     init() {
         super.init(frame: NSRect(x: 0, y: 0, width: 260, height: 20))
         label.font = NSFont.menuFont(ofSize: 0)
-        label.frame = NSRect(x: 2, y: 1, width: 200, height: 18)
+        label.frame = NSRect(x: 20, y: 1, width: 200, height: 18)
         addSubview(label)
     }
     required init?(coder: NSCoder) { fatalError() }
