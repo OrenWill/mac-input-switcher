@@ -5,6 +5,7 @@ import SwiftUI
 struct SettingsView: View {
     @StateObject private var vm = InputMethodViewModel()
     @State private var showInstallHint = false
+    @State private var authorHovered = false
 
     var body: some View {
         VStack(spacing: 0) {
@@ -147,9 +148,19 @@ struct SettingsView: View {
 
     private var footerSection: some View {
         HStack {
-            Text("@OrenWill · WeChat: wanggh92")
-                .font(.system(size: 10))
-                .foregroundColor(.secondary.opacity(0.6))
+            Text("@OrenWill")
+                .font(.system(size: 12))
+                .foregroundColor(authorHovered ? .accentColor : .secondary.opacity(0.5))
+                .onHover { hovering in
+                    withAnimation(.easeInOut(duration: 0.15)) {
+                        authorHovered = hovering
+                    }
+                }
+                .onTapGesture {
+                    if let url = URL(string: "https://github.com/OrenWill/mac-input-switcher") {
+                        NSWorkspace.shared.open(url)
+                    }
+                }
             Spacer()
             Button(action: { NSApp.terminate(nil) }) {
                 Text("退出应用")
