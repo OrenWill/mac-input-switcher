@@ -20,7 +20,7 @@ private final class StatusItemView: NSView {
         text.draw(at: NSPoint(x: x, y: y), withAttributes: attrs)
 
         if showRedDot {
-            let dotSize: CGFloat = 8
+            let dotSize: CGFloat = 6
             let dotRect = NSRect(
                 x: bounds.width - dotSize - 2,
                 y: bounds.height - dotSize - 2,
@@ -102,11 +102,20 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         item.target = self
 
         if updateAvailable {
-            let attr = NSMutableAttributedString(string: "检查更新  ●")
-            attr.addAttribute(.foregroundColor, value: NSColor.systemRed,
-                              range: NSRange(location: attr.length - 1, length: 1))
+            let attr = NSMutableAttributedString(string: "检查更新 ")
+            // 6px 红色圆点作为文本附件
+            let dotSize: CGFloat = 6
+            let dotImage = NSImage(size: NSSize(width: dotSize + 2, height: dotSize + 2))
+            dotImage.lockFocus()
+            NSColor.systemRed.setFill()
+            NSBezierPath(ovalIn: NSRect(x: 1, y: 1, width: dotSize, height: dotSize)).fill()
+            dotImage.unlockFocus()
+            let attachment = NSTextAttachment()
+            attachment.image = dotImage
+            attachment.bounds = NSRect(x: 0, y: -2, width: dotSize + 2, height: dotSize + 2)
+            attr.append(NSAttributedString(attachment: attachment))
             attr.addAttribute(.foregroundColor, value: NSColor.textColor,
-                              range: NSRange(location: 0, length: 4))
+                              range: NSRange(location: 0, length: attr.length))
             item.attributedTitle = attr
         } else {
             item.title = "检查更新"
