@@ -1,0 +1,29 @@
+# 编译产物
+build/
+*.o
+*.dmg
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+*.icloud
+
+# Xcode
+*.xcuserdata
+*.xcworkspace
+DerivedData/
+
+# 临时文件
+*.swp
+*.swo
+*~
+/tmp/
+
+# Python
+__pycache__/
+*.pyc
+
+# IDE
+.idea/
+.vscode/
