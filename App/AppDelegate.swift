@@ -70,6 +70,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func switchToInputMethod(_ sender: NSMenuItem) {
         guard let src = sender.representedObject as? InputSource else { return }
         _ = manager.switchTo(source: src)
+        // 持久化为全局默认输入法
+        UserDefaults.standard.set(src.name, forKey: "default_input_method")
     }
 
     private func applyDefaultIME() {
@@ -92,12 +94,26 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool { false }
 
-    // MARK: - 监听系统输入法变化
+    // MARK: - 监听
 
     private func startObserving() {
-        let name = Notification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String)
+        // 系统输入法被其他方式改变时通知
+        let imeName = Notification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String)
         DistributedNotificationCenter.default().addObserver(self, selector: #selector(systemIMEChanged),
-                                                            name: name, object: nil)
+                                                            name: imeName, object: nil)
+
+        // 应用前后台切换时自动恢复默认输入法
+        NSWorkspace.shared.notificationCenter.addObserver(
+            self, selector: #selector(appDidActivate),
+            name: NSWorkspace.didActivateApplicationNotification, object: nil
+        )
+    }
+
+    @objc private func appDidActivate(_ notif: Notification) {
+        // 忽略自身
+        guard let app = notif.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
+              app.bundleIdentifier != Bundle.main.bundleIdentifier else { return }
+        applyDefaultIME()
     }
 
     @objc private func systemIMEChanged() {}
