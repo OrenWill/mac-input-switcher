@@ -1,5 +1,6 @@
 import Carbon
 import Foundation
+import CoreGraphics
 
 // MARK: - 输入法源
 
@@ -102,5 +103,30 @@ final class InputMethodManager {
 
     func switchTo(source: InputSource) -> Bool {
         return TISSelectInputSource(source.source) == noErr
+    }
+
+    /// CGEvent 强切：模拟 Cmd+Space，穿透系统对话框沙盒
+    /// 需要辅助功能权限，无权限时静默回调 TISSelectInputSource 结果
+    func forceSwitchTo(targetName: String) -> Bool {
+        // 先尝试标准 API
+        let ok = switchTo(name: targetName)
+        guard ok else { return false }
+
+        // CGEvent 补充：仅当与目标不一致时模拟一次 Cmd+Space
+        if let cur = currentSource(), cur.name == targetName { return true }
+
+        let source = CGEventSource(stateID: .hidSystemState)
+        let vkSpace: CGKeyCode = 0x31
+
+        let keyDown = CGEvent(keyboardEventSource: source, virtualKey: vkSpace, keyDown: true)
+        keyDown?.flags = .maskCommand
+        keyDown?.post(tap: .cghidEventTap)
+
+        usleep(80000) // 80ms
+
+        let keyUp = CGEvent(keyboardEventSource: source, virtualKey: vkSpace, keyDown: false)
+        keyUp?.post(tap: .cghidEventTap)
+
+        return true
     }
 }

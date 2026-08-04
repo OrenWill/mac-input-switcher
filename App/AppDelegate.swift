@@ -82,12 +82,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     private func applyDefaultIME() {
         let d = UserDefaults.standard
         let ime = d.string(forKey: "default_input_method") ?? "\u{5FAE}\u{4FE1}\u{8F93}\u{5165}\u{6CD5}"
-        _ = manager.switchTo(name: ime)
-        // 广播通知，强制系统对话框（NSOpenPanel/NSSavePanel）等独立进程感知变更
-        DistributedNotificationCenter.default().postNotificationName(
-            NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
-            object: nil, userInfo: nil, deliverImmediately: true
-        )
+        _ = manager.forceSwitchTo(targetName: ime)
     }
 
     // MARK: - 检查更新
