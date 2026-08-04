@@ -115,6 +115,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     @objc private func appDidActivate(_ notif: Notification) {
         // 任何应用激活（含自身被点菜单栏）都恢复默认输入法
         applyDefaultIME()
+        // 延迟 2 秒再次确认，覆盖新应用打开弹窗/面板后输入法又被系统改掉的场景
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.applyDefaultIME()
+        }
     }
 
     @objc private func systemIMEChanged() {}
