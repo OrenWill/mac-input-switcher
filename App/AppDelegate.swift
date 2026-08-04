@@ -16,7 +16,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         setupStatusItem()
         setupMenu()
         startObserving()
-        applyDefaultIME()
+        // 延迟执行，确保系统输入法服务已就绪
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+            self?.applyDefaultIME()
+        }
         UpdateKit.shared.startAutoCheck()
     }
 
@@ -110,9 +113,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
     }
 
     @objc private func appDidActivate(_ notif: Notification) {
-        // 忽略自身
-        guard let app = notif.userInfo?[NSWorkspace.applicationUserInfoKey] as? NSRunningApplication,
-              app.bundleIdentifier != Bundle.main.bundleIdentifier else { return }
+        // 任何应用激活（含自身被点菜单栏）都恢复默认输入法
         applyDefaultIME()
     }
 
