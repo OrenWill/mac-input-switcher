@@ -16,7 +16,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         setupStatusItem()
         setupMenu()
         startObserving()
-        // 延迟执行，确保系统输入法服务已就绪
+        // 立即执行一次，确保启动后立刻生效
+        applyDefaultIME()
+        // 延迟再次确认，兜底系统输入法服务未完全就绪的情况
         DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
             self?.applyDefaultIME()
         }
@@ -81,6 +83,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         let d = UserDefaults.standard
         let ime = d.string(forKey: "default_input_method") ?? "\u{5FAE}\u{4FE1}\u{8F93}\u{5165}\u{6CD5}"
         _ = manager.switchTo(name: ime)
+        // 广播通知，强制系统对话框（NSOpenPanel/NSSavePanel）等独立进程感知变更
+        DistributedNotificationCenter.default().postNotificationName(
+            NSNotification.Name(kTISNotifySelectedKeyboardInputSourceChanged as String),
+            object: nil, userInfo: nil, deliverImmediately: true
+        )
     }
 
     // MARK: - 检查更新
