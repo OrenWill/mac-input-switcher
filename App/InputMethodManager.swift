@@ -106,14 +106,16 @@ final class InputMethodManager {
     }
 
     /// CGEvent 强切：模拟 Cmd+Space，穿透系统对话框沙盒
-    /// 需要辅助功能权限，无权限时静默回调 TISSelectInputSource 结果
+    /// 需要辅助功能权限，无权限时回退到 TISSelectInputSource
     func forceSwitchTo(targetName: String) -> Bool {
-        // 先尝试标准 API
         let ok = switchTo(name: targetName)
         guard ok else { return false }
 
-        // CGEvent 补充：仅当与目标不一致时模拟一次 Cmd+Space
+        // 已达标则无需 CGEvent
         if let cur = currentSource(), cur.name == targetName { return true }
+
+        // 无辅助功能权限时 CGEvent 无效，直接返回
+        guard AXIsProcessTrusted() else { return ok }
 
         let source = CGEventSource(stateID: .hidSystemState)
         let vkSpace: CGKeyCode = 0x31
@@ -122,7 +124,7 @@ final class InputMethodManager {
         keyDown?.flags = .maskCommand
         keyDown?.post(tap: .cghidEventTap)
 
-        usleep(80000) // 80ms
+        usleep(80000)
 
         let keyUp = CGEvent(keyboardEventSource: source, virtualKey: vkSpace, keyDown: false)
         keyUp?.post(tap: .cghidEventTap)

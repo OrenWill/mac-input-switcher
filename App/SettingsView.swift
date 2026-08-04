@@ -15,6 +15,8 @@ struct SettingsView: View {
             Divider().padding(.horizontal, 16)
             launchAtLoginSection
             Divider().padding(.horizontal, 16)
+            accessibilitySection
+            Divider().padding(.horizontal, 16)
             footerSection
         }
         .frame(width: 400, height: 620)
@@ -141,6 +143,40 @@ struct SettingsView: View {
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
+    }
+
+    // MARK: - 辅助功能权限
+
+    private var accessibilitySection: some View {
+        HStack {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("辅助功能权限")
+                    .font(.system(size: 13, weight: .medium))
+                Text(AXIsProcessTrusted()
+                     ? "已授权 — 可在系统对话框中自动切换输入法"
+                     : "未授权 — 系统弹框中输入法无法自动切换")
+                    .font(.system(size: 11))
+                    .foregroundColor(AXIsProcessTrusted() ? .green : .orange)
+            }
+            Spacer()
+            if !AXIsProcessTrusted() {
+                Button("开启") {
+                    openAccessibilityPrefs()
+                }
+                .font(.system(size: 12))
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 12)
+    }
+
+    private func openAccessibilityPrefs() {
+        // 打开系统偏好设置 → 辅助功能
+        NSWorkspace.shared.open(
+            URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Accessibility")!
+        )
     }
 
     // MARK: - 底部
