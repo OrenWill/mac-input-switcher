@@ -112,12 +112,16 @@ final class AppDelegate: NSObject, NSApplicationDelegate, NSMenuDelegate {
         )
     }
 
+    // MARK: - 输入法恢复（含多次重试）
+
     @objc private func appDidActivate(_ notif: Notification) {
-        // 任何应用激活（含自身被点菜单栏）都恢复默认输入法
+        // 高频重试，覆盖"切到应用 → 打开弹窗/面板 → 输入法又被系统改掉"的场景
         applyDefaultIME()
-        // 延迟 2 秒再次确认，覆盖新应用打开弹窗/面板后输入法又被系统改掉的场景
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
-            self?.applyDefaultIME()
+        let retryDelays: [Double] = [0.5, 1.5, 3.0, 6.0]
+        for delay in retryDelays {
+            DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
+                self?.applyDefaultIME()
+            }
         }
     }
 
